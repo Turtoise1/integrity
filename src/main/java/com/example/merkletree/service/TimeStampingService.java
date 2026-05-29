@@ -20,9 +20,13 @@ public class TimeStampingService {
      * Taken from
      * https://www.javatips.net/api/jsign-master/jsign-core/src/main/java/net/jsign/timestamp/RFC3161Timestamper.java
      *
-     * @param request
-     * @return
-     * @throws IOException
+     * Copyright 2014 Florent Daigniere
+     *
+     * Licensed under the Apache License, Version 2.0 (the "License");
+     * you may not use this file except in compliance with the License.
+     * You may obtain a copy of the License at
+     *
+     * http://www.apache.org/licenses/LICENSE-2.0
      */
     public TimeStampToken requestTimeStamp(TimeStampRequest request) {
         URL tsaurl;

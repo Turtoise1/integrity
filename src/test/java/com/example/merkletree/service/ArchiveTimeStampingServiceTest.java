@@ -17,7 +17,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import com.example.merkletree.model.Composite;
 import com.example.merkletree.model.HashAlgorithm;
 import com.example.merkletree.model.MerkleTreeNode;
-import com.example.merkletree.service.ArchiveTimeStampingService;
 import com.example.merkletree.utils.CryptoUtils;
 import com.example.merkletree.utils.TestCompositeUtils;
 
