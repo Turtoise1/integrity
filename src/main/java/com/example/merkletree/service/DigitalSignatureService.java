@@ -12,16 +12,22 @@ import eu.europa.esig.dss.model.SignatureValue;
 import eu.europa.esig.dss.model.ToBeSigned;
 import eu.europa.esig.dss.service.crl.OnlineCRLSource;
 import eu.europa.esig.dss.service.ocsp.OnlineOCSPSource;
+import eu.europa.esig.dss.spi.signature.AdvancedSignature;
+import eu.europa.esig.dss.spi.validation.CertificateVerifier;
 import eu.europa.esig.dss.spi.validation.CommonCertificateVerifier;
 import eu.europa.esig.dss.spi.x509.CommonTrustedCertificateSource;
 import eu.europa.esig.dss.spi.x509.tsp.TSPSource;
 import eu.europa.esig.dss.token.DSSPrivateKeyEntry;
 import eu.europa.esig.dss.token.Pkcs12SignatureToken;
+import eu.europa.esig.dss.validation.SignedDocumentValidator;
+import eu.europa.esig.dss.validation.reports.Reports;
+import lombok.extern.slf4j.Slf4j;
 import eu.europa.esig.dss.asic.xades.ASiCWithXAdESSignatureParameters;
 import eu.europa.esig.dss.asic.xades.signature.ASiCWithXAdESService;
 
 import java.util.List;
 
+@Slf4j
 @Service
 public class DigitalSignatureService {
 
@@ -96,6 +102,9 @@ public class DigitalSignatureService {
         // Extend the document
         signedDocument = documentExtender.extendDocument(SignatureProfile.BASELINE_LTA);
 
+        // Verify the signed document
+        validateSignature(signedDocument, certificateVerifier);
+
         try {
             // Save the signed container
             signedDocument.save("target/signed_container.asice");
@@ -109,6 +118,21 @@ public class DigitalSignatureService {
             signatureToken.close();
         }
 
+    }
+
+    public boolean validateSignature(DSSDocument signedDocument, CertificateVerifier certificateVerifier) {
+        SignedDocumentValidator validator = SignedDocumentValidator.fromDocument(signedDocument);
+        validator.setCertificateVerifier(certificateVerifier);
+        Reports reports = validator.validateDocument();
+        boolean allSignaturesValid = true;
+        log.info("Validating {} signatures.", validator.getSignatures().size());
+        for (AdvancedSignature signature : validator.getSignatures()) {
+            if (!reports.getSimpleReport().isValid(signature.getId())) {
+                allSignaturesValid = false;
+            }
+            log.info("Signature {} is {}", signature.getId(), allSignaturesValid ? "valid" : "invalid");
+        }
+        return allSignaturesValid;
     }
 
 }
