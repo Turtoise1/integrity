@@ -1,4 +1,4 @@
-package com.example.merkletree;
+package com.example.merkletree.model;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -6,7 +6,6 @@ import java.util.List;
 
 import org.bouncycastle.asn1.tsp.PartialHashtree;
 
-import com.example.merkletree.composite.Composite;
 import com.example.merkletree.utils.CryptoUtils;
 
 import lombok.extern.slf4j.Slf4j;

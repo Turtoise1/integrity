@@ -1,4 +1,4 @@
-package com.example.merkletree;
+package com.example.merkletree.service;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
@@ -7,40 +7,14 @@ import java.net.URI;
 import java.net.URL;
 
 import org.bouncycastle.asn1.ASN1InputStream;
-import org.bouncycastle.asn1.cms.ContentInfo;
-import org.bouncycastle.asn1.tsp.ArchiveTimeStamp;
-import org.bouncycastle.asn1.tsp.PartialHashtree;
 import org.bouncycastle.asn1.tsp.TimeStampResp;
-import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 import org.bouncycastle.tsp.TimeStampRequest;
-import org.bouncycastle.tsp.TimeStampRequestGenerator;
 import org.bouncycastle.tsp.TimeStampResponse;
 import org.bouncycastle.tsp.TimeStampToken;
+import org.springframework.stereotype.Service;
 
-public class TimeStamping {
-
-    /**
-     * Create an archive timestamp according to RFC 4998.
-     *
-     * @param rootHash        The root hash of the Merkle tree.
-     * @param reducedHashTree The reduced hash tree containing the path to some node that shall be archived.
-     * @param hashAlgorithm   The hash algorithm used to create the hash tree.
-     * @return The created archive timestamp.
-     */
-    public static ArchiveTimeStamp createArchiveTimeStamp(byte[] rootHash, PartialHashtree[] reducedHashTree,
-            HashAlgorithm hashAlgorithm) {
-
-        // Obtain a timestamp for the root hash value
-        TimeStampRequestGenerator generator = new TimeStampRequestGenerator();
-        TimeStampRequest request = generator.generate(hashAlgorithm.getOid(), rootHash);
-        ContentInfo timeStamp = requestTimeStamp(request).toCMSSignedData().toASN1Structure();
-
-        AlgorithmIdentifier identifier = new AlgorithmIdentifier(hashAlgorithm.getOid());
-
-        // Create the archive timestamp
-        ArchiveTimeStamp archiveTimeStamp = new ArchiveTimeStamp(identifier, reducedHashTree, timeStamp);
-        return archiveTimeStamp;
-    }
+@Service
+public class TimeStampingService {
 
     /**
      * Taken from
@@ -50,7 +24,7 @@ public class TimeStamping {
      * @return
      * @throws IOException
      */
-    public static TimeStampToken requestTimeStamp(TimeStampRequest request) {
+    public TimeStampToken requestTimeStamp(TimeStampRequest request) {
         URL tsaurl;
         try {
             tsaurl = URI.create("https://zeitstempel.dfn.de/").toURL();

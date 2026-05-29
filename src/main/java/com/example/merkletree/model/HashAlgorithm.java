@@ -1,4 +1,4 @@
-package com.example.merkletree;
+package com.example.merkletree.model;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -8,7 +8,8 @@ import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 import org.bouncycastle.tsp.TSPAlgorithms;
 
 public enum HashAlgorithm {
-    SHA256("SHA-256", TSPAlgorithms.SHA256);
+    SHA256("SHA-256", TSPAlgorithms.SHA256),
+    SHA512("SHA-512", TSPAlgorithms.SHA512);
 
     private String algorithmName;
     private ASN1ObjectIdentifier oid;

@@ -1,4 +1,4 @@
-package com.example.merkletree.composite;
+package com.example.merkletree.model;
 
 import java.util.List;
 
