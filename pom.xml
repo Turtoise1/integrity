@@ -14,8 +14,8 @@
 	<groupId>com.example</groupId>
 	<artifactId>merkletree</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>Merkle-Trees</name>
-	<description>Merkle-Trees with Bouncy Castle</description>
+	<name>Integrity</name>
+	<description>A Java Spring application for testing and comparing long term integrity methods like Advanced Electronic Signatures. Frontend at https://github.com/Turtoise1/integrity-frontend.</description>
 	<url />
 	<licenses>
 		<license />
