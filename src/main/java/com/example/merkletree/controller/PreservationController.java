@@ -1,5 +1,7 @@
 package com.example.merkletree.controller;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
@@ -14,6 +16,7 @@ import com.example.merkletree.service.DigitalSignatureService;
 import com.example.merkletree.service.DocumentService;
 
 import eu.europa.esig.dss.model.DSSDocument;
+import eu.europa.esig.dss.spi.validation.CommonCertificateVerifier;
 
 @RestController
 @RequestMapping("/api/preservation")
@@ -42,4 +45,34 @@ public class PreservationController {
                 .body(resource);
     }
 
+    @PostMapping("/extend")
+    public ResponseEntity<InputStreamResource> extend(@RequestParam("path") String path) {
+        List<DSSDocument> documents = documentService.getDocuments(path);
+        if (documents.size() != 1) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        DSSDocument extendedDocument = digitalSignatureService.extendSignature(documents.get(0),
+                configService.getDefaultSignatureToken(), configService.getDefaultTrustedCertificateSource(),
+                configService.getDefaultOnlineTSPSource());
+
+        InputStreamResource resource = new InputStreamResource(extendedDocument.openStream());
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + extendedDocument.getName() + "\"")
+                .body(resource);
+    }
+
+    @PostMapping("/verify")
+    public ResponseEntity<Boolean> verify(@RequestParam("path") String path) {
+        List<DSSDocument> documents = documentService.getDocuments(path);
+        if (documents.size() != 1) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        CommonCertificateVerifier verifier = new CommonCertificateVerifier();
+        verifier.setTrustedCertSources(configService.getDefaultTrustedCertificateSource());
+        boolean allSignaturesValid = digitalSignatureService.validateSignature(documents.get(0), verifier);
+        return ResponseEntity.ok(allSignaturesValid);
+    }
 }

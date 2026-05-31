@@ -38,6 +38,9 @@ public class ConfigService {
         CommonTrustedCertificateSource trustedCertificateSource = new CommonTrustedCertificateSource();
         // Add the TSA certificate
         addDfnCertificates(trustedCertificateSource);
+        // Add default signature token
+        getDefaultSignatureToken().getKeys().stream()
+                .forEach(k -> trustedCertificateSource.addCertificate(k.getCertificate()));
         return trustedCertificateSource;
     }
 
