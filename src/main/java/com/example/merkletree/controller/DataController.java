@@ -32,13 +32,13 @@ public class DataController {
     }
 
     @PostMapping(value = "upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public String upload(HttpServletRequest request) throws IOException, ServletException {
+    public ResponseEntity<Void> upload(HttpServletRequest request) throws IOException, ServletException {
         try {
             documentService.acceptDocuments(request.getParts());
-            return "ok";
+            return ResponseEntity.ok().build();
         } catch (IOException e) {
             log.error("Failed to upload documents", e);
-            return "error: " + e.getMessage();
+            return ResponseEntity.status(500).build();
         }
     }
 

@@ -31,7 +31,7 @@ import java.util.List;
 @Service
 public class DigitalSignatureService {
 
-    public void sign(List<DSSDocument> documentsToSign, Pkcs12SignatureToken signatureToken,
+    public DSSDocument sign(List<DSSDocument> documentsToSign, Pkcs12SignatureToken signatureToken,
             CommonTrustedCertificateSource trustedCertificateSource, TSPSource tspSource) {
 
         // Get the first private key entry
@@ -105,18 +105,8 @@ public class DigitalSignatureService {
         // Verify the signed document
         validateSignature(signedDocument, certificateVerifier);
 
-        try {
-            // Save the signed container
-            signedDocument.save("target/signed_container.asice");
-
-            System.out.println("ASiC container with XAdES signatures created successfully!");
-            System.out.println("Saved to: target/signed_container.asice");
-
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to save signed container", e);
-        } finally {
-            signatureToken.close();
-        }
+        signatureToken.close();
+        return signedDocument;
 
     }
 
