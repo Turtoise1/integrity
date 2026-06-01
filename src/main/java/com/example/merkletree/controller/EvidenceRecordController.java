@@ -2,7 +2,6 @@ package com.example.merkletree.controller;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
-
 import org.bouncycastle.asn1.tsp.EvidenceRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
@@ -28,10 +27,10 @@ public class EvidenceRecordController {
 
     @PostMapping("/create")
     public ResponseEntity<InputStreamResource> createEvidenceRecord(@RequestParam("path") String path) {
-        File file = documentService.getFile(path);
+        byte[] content = documentService.getFileContent(path);
         byte[] evidenceRecord;
         try {
-            evidenceRecord = evidenceRecordService.createEvidenceRecord(file).toASN1Primitive().getEncoded();
+            evidenceRecord = evidenceRecordService.createEvidenceRecord(content).toASN1Primitive().getEncoded();
         } catch (Exception e) {
             throw new RuntimeException("Failed to encode evidence record", e);
         }
@@ -84,4 +83,15 @@ public class EvidenceRecordController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + erFile.getName() + "\"")
                 .body(resource);
     }
+
+    @PostMapping("/verify")
+    public ResponseEntity<Boolean> verifyEvidenceRecord(@RequestParam("filePath") String filePath,
+            @RequestParam("erPath") String erPath) {
+        byte[] content = documentService.getFileContent(filePath);
+        File erFile = documentService.getFile(erPath);
+        EvidenceRecord er = evidenceRecordService.parseEvidenceRecord(erFile);
+        boolean result = evidenceRecordService.verifyEvidenceRecord(er, content);
+        return ResponseEntity.ok(result);
+    }
+
 }

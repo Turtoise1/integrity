@@ -61,6 +61,14 @@ public class DocumentService {
 
     }
 
+    public byte[] getFileContent(String path) {
+        try {
+            return Files.readAllBytes(Path.of(DOCUMENTS_FOLDER + path));
+        } catch (IOException e) {
+            throw new RuntimeException("Could not read file content", e);
+        }
+    }
+
     public File getFile(String path) {
         return new File(DOCUMENTS_FOLDER + path);
     }

@@ -20,6 +20,7 @@ import com.example.merkletree.model.Composite;
 import com.example.merkletree.model.FileComposite;
 import com.example.merkletree.model.HashAlgorithm;
 import com.example.merkletree.model.MerkleTreeNode;
+import com.example.merkletree.utils.CryptoUtils;
 
 @Service
 public class EvidenceRecordService {
@@ -30,14 +31,12 @@ public class EvidenceRecordService {
     @Autowired
     private ArchiveTimeStampingService archiveTimeStampingService;
 
-    public EvidenceRecord createEvidenceRecord(File file) {
+    public EvidenceRecord createEvidenceRecord(byte[] content) {
 
         HashAlgorithm hashAlgorithm = configService.getDefaultHashAlgorithm();
-        FileComposite composite = new FileComposite(file);
-        MerkleTreeNode root = buildMerkleTree(composite, hashAlgorithm);
+        byte[] hash = CryptoUtils.hash(content, hashAlgorithm);
 
-        ArchiveTimeStamp archiveTimeStamp = archiveTimeStampingService.createArchiveTimeStamp(root.getHash(),
-                hashAlgorithm);
+        ArchiveTimeStamp archiveTimeStamp = archiveTimeStampingService.createArchiveTimeStamp(hash, hashAlgorithm);
 
         // cryptoInfos allows the storage of data useful in the validation of the archiveTimeStampSequence. This could
         // include possible Trust Anchors, certificates, revocation information, or the current definition of the
@@ -86,6 +85,20 @@ public class EvidenceRecordService {
         CryptoInfos cryptoInfos = new CryptoInfos(new Attribute[] {});
         EvidenceRecord newER = new EvidenceRecord(algorithms, cryptoInfos, null, sequence);
         return newER;
+    }
+
+    public boolean verifyEvidenceRecord(EvidenceRecord evidenceRecord, byte[] fileContentToVerify) {
+        AlgorithmIdentifier[] algorithms = evidenceRecord.getDigestAlgorithms();
+        HashAlgorithm newestAlgorithm = HashAlgorithm.fromAlgorithmIdentifier(algorithms[algorithms.length - 1]);
+
+        ArchiveTimeStampChain[] chains = evidenceRecord.getArchiveTimeStampSequence().getArchiveTimeStampChains();
+        ArchiveTimeStampChain newestChain = chains[chains.length - 1];
+        ArchiveTimeStamp[] timestamps = newestChain.getArchiveTimestamps();
+        ArchiveTimeStamp newest = timestamps[timestamps.length - 1];
+
+        // TODO: Determine the content to verify if there are multiple chains/ multiple timestamps
+
+        return archiveTimeStampingService.verifyArchiveTimeStamp(newest, fileContentToVerify, newestAlgorithm);
     }
 
     /**
