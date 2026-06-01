@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.util.List;
 
+import org.bouncycastle.asn1.tsp.EvidenceRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
@@ -55,6 +56,48 @@ public class PreservationController {
                 .body(resource);
     }
 
+    @PostMapping("/er/renew/timestamp")
+    public ResponseEntity<InputStreamResource> renewEvidenceRecord(@RequestParam("erPath") String erPath) {
+        File erFile = documentService.getFile(erPath);
+        EvidenceRecord er = evidenceRecordService.parseEvidenceRecord(erFile);
+        byte[] encodedER;
+        try {
+            evidenceRecordService.timeStampRenewal(er);
+            encodedER = er.toASN1Primitive().getEncoded();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to renew evidence record", e);
+        }
+
+        InputStreamResource resource = new InputStreamResource(
+                new ByteArrayInputStream(encodedER));
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + erFile.getName() + "\"")
+                .body(resource);
+    }
+
+    @PostMapping("/er/renew/hashtree")
+    public ResponseEntity<InputStreamResource> renewHashTree(@RequestParam("filePath") String filePath,
+            @RequestParam("erPath") String erPath) {
+        File file = documentService.getFile(filePath);
+        File erFile = documentService.getFile(erPath);
+        EvidenceRecord er = evidenceRecordService.parseEvidenceRecord(erFile);
+        byte[] encodedER;
+        try {
+            er = evidenceRecordService.hashTreeRenewal(file, er);
+            encodedER = er.toASN1Primitive().getEncoded();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to renew evidence record", e);
+        }
+
+        InputStreamResource resource = new InputStreamResource(
+                new ByteArrayInputStream(encodedER));
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + erFile.getName() + "\"")
+                .body(resource);
+    }
+
     @PostMapping("/sign")
     public ResponseEntity<InputStreamResource> sign(@RequestParam("path") String path) {
 
@@ -65,7 +108,7 @@ public class PreservationController {
         InputStreamResource resource = new InputStreamResource(document.openStream());
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + document.getName() + "\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + path + "-signed-xades-lta.sce\"")
                 .body(resource);
     }
 

@@ -33,6 +33,10 @@ public enum HashAlgorithm {
         return DigestAlgorithm.forOID(oid.getId());
     }
 
+    public AlgorithmIdentifier getAlgorithmIdentifier() {
+        return new AlgorithmIdentifier(oid, null);
+    }
+
     public MessageDigest getMessageDigest() {
         try {
             return MessageDigest.getInstance(algorithmName);
