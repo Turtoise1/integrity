@@ -29,6 +29,7 @@ import org.bouncycastle.util.Store;
 import org.bouncycastle.util.encoders.Hex;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 
 import com.example.merkletree.model.Composite;
 import com.example.merkletree.model.HashAlgorithm;
@@ -38,6 +39,7 @@ import com.example.merkletree.utils.CryptoUtils;
 import com.example.merkletree.utils.TestCompositeUtils;
 import com.example.merkletree.utils.TestUtils;
 
+@SpringBootTest
 public class TimeStampingServiceTest {
 
     @Autowired

@@ -35,9 +35,10 @@ public class TestCompositeUtils {
         return root;
     }
 
-    public static Composite pickRandomAncestor(Composite input) {
+    public static Composite pickRandomLeaf(Composite input) {
         List<Composite> ancestors = flatten(input);
-        return ancestors.get(ThreadLocalRandom.current().nextInt(ancestors.size()));
+        List<Composite> leaves = ancestors.stream().filter(leaf -> leaf.getChildren().isEmpty()).toList();
+        return leaves.get(ThreadLocalRandom.current().nextInt(leaves.size()));
     }
 
     private static List<Composite> flatten(Composite input) {

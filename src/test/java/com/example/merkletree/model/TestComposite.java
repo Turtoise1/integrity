@@ -4,12 +4,14 @@ import java.util.List;
 
 public class TestComposite extends Composite {
 
-    private String content = "";
+    private String content = null;
     private final List<TestComposite> children;
 
     public TestComposite(List<TestComposite> children) {
         this.children = children;
-        generateRandomContent();
+        if (this.children == null || this.children.isEmpty()) {
+            generateRandomContent();
+        }
     }
 
     private void generateRandomContent() {

@@ -61,6 +61,10 @@ public class DocumentService {
 
     }
 
+    public File getFile(String path) {
+        return new File(DOCUMENTS_FOLDER + path);
+    }
+
     public List<DSSDocument> getDocuments(String path) {
         // Create a list of documents to sign
         List<DSSDocument> documentsToSign = new ArrayList<>();

@@ -5,6 +5,8 @@ import java.security.KeyStore.PasswordProtection;
 
 import org.springframework.stereotype.Service;
 
+import com.example.merkletree.model.HashAlgorithm;
+
 import eu.europa.esig.dss.model.x509.CertificateToken;
 import eu.europa.esig.dss.service.tsp.OnlineTSPSource;
 import eu.europa.esig.dss.spi.DSSUtils;
@@ -15,6 +17,10 @@ import eu.europa.esig.dss.token.Pkcs12SignatureToken;
 
 @Service
 public class ConfigService {
+
+    public HashAlgorithm getDefaultHashAlgorithm() {
+        return HashAlgorithm.SHA256;
+    }
 
     public TSPSource getDefaultOnlineTSPSource() {
         final String tspServer = "https://zeitstempel.dfn.de/";

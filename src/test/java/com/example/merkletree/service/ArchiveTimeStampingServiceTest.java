@@ -1,6 +1,7 @@
 package com.example.merkletree.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -30,16 +31,18 @@ class ArchiveTimeStampingServiceTest {
     public void callCreateArchiveTimeStamp() throws IOException {
         // Random test values
         Composite testComposite = TestCompositeUtils.generateTestComposite();
-        Composite chosenDocument = TestCompositeUtils.pickRandomAncestor(testComposite);
+        Composite chosenDocument = TestCompositeUtils.pickRandomLeaf(testComposite);
         HashAlgorithm hashAlgorithm = HashAlgorithm.SHA256;
 
         // Generate hash tree
         MerkleTreeNode tree = new MerkleTreeNode(testComposite, hashAlgorithm);
 
-        // Get the reduced tree to the randomly selected ancestor
-        MerkleTreeNode chosenNode = tree.findAncestor(chosenDocument);
+        // Get the reduced tree to the randomly selected descendant
+        MerkleTreeNode chosenNode = tree.findDescendant(chosenDocument);
         byte[] rootHash = tree.getHash();
-        PartialHashtree[] reducedTree = tree.getPathFromAncestor(chosenNode.getHash());
+        PartialHashtree[] reducedTree = tree.getPathToDescendant(chosenNode.getHash());
+        // Chosen node is a leaf node, so it should not equal the root hash
+        assertNotNull(reducedTree);
 
         ArchiveTimeStamp result = archiveTimeStampingService.createArchiveTimeStamp(rootHash, reducedTree,
                 hashAlgorithm);
@@ -51,7 +54,8 @@ class ArchiveTimeStampingServiceTest {
         assertEquals(hashAlgorithm.getOid().toString(), algorithmIdentifierResult);
 
         PartialHashtree resultLeaf = result.getHashTreeLeaf();
-        PartialHashtree expectedLeaf = chosenNode.getPathFromAncestor(chosenNode.getHash())[0];
+        MerkleTreeNode parent = tree.findParent(chosenNode);
+        PartialHashtree expectedLeaf = parent.getPathToDescendant(chosenNode.getHash())[0];
         assertEquals(expectedLeaf.toString(), resultLeaf.toString());
     }
 
@@ -59,15 +63,15 @@ class ArchiveTimeStampingServiceTest {
     public void testTimeStampRenewal() throws Exception {
         // Random test values
         Composite testComposite = TestCompositeUtils.generateTestComposite();
-        Composite chosenDocument = TestCompositeUtils.pickRandomAncestor(testComposite);
+        Composite chosenDocument = TestCompositeUtils.pickRandomLeaf(testComposite);
         HashAlgorithm hashAlgorithm = HashAlgorithm.SHA256;
 
         // Generate hash tree
         MerkleTreeNode tree = new MerkleTreeNode(testComposite, hashAlgorithm);
 
         // Get the reduced tree to the randomly selected ancestor
-        MerkleTreeNode chosenNode = tree.findAncestor(chosenDocument);
-        PartialHashtree[] reducedTree = tree.getPathFromAncestor(chosenNode.getHash());
+        MerkleTreeNode chosenNode = tree.findDescendant(chosenDocument);
+        PartialHashtree[] reducedTree = tree.getPathToDescendant(chosenNode.getHash());
 
         ArchiveTimeStamp archiveTimeStamp = archiveTimeStampingService.createArchiveTimeStamp(tree.getHash(),
                 reducedTree,
@@ -93,15 +97,15 @@ class ArchiveTimeStampingServiceTest {
     public void verifyArchiveTimeStamp() throws IOException, TSPException {
         // Random test values
         Composite testComposite = TestCompositeUtils.generateTestComposite();
-        Composite chosenDocument = TestCompositeUtils.pickRandomAncestor(testComposite);
+        Composite chosenDocument = TestCompositeUtils.pickRandomLeaf(testComposite);
         HashAlgorithm hashAlgorithm = HashAlgorithm.SHA256;
 
         // Generate hash tree
         MerkleTreeNode tree = new MerkleTreeNode(testComposite, hashAlgorithm);
 
         // Get the reduced tree to the randomly selected ancestor
-        MerkleTreeNode chosenNode = tree.findAncestor(chosenDocument);
-        PartialHashtree[] reducedTree = tree.getPathFromAncestor(chosenNode.getHash());
+        MerkleTreeNode chosenNode = tree.findDescendant(chosenDocument);
+        PartialHashtree[] reducedTree = tree.getPathToDescendant(chosenNode.getHash());
 
         ArchiveTimeStamp result = archiveTimeStampingService.createArchiveTimeStamp(tree.getHash(), reducedTree,
                 hashAlgorithm);

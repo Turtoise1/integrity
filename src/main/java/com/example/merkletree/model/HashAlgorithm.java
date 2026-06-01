@@ -7,6 +7,8 @@ import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 import org.bouncycastle.tsp.TSPAlgorithms;
 
+import eu.europa.esig.dss.enumerations.DigestAlgorithm;
+
 public enum HashAlgorithm {
     SHA256("SHA-256", TSPAlgorithms.SHA256),
     SHA512("SHA-512", TSPAlgorithms.SHA512);
@@ -25,6 +27,10 @@ public enum HashAlgorithm {
 
     public ASN1ObjectIdentifier getOid() {
         return oid;
+    }
+
+    public DigestAlgorithm getDigestAlgorithm() {
+        return DigestAlgorithm.forOID(oid.getId());
     }
 
     public MessageDigest getMessageDigest() {

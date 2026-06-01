@@ -1,5 +1,7 @@
 package com.example.merkletree.controller;
 
+import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,9 +13,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
 import com.example.merkletree.service.ConfigService;
 import com.example.merkletree.service.DigitalSignatureService;
 import com.example.merkletree.service.DocumentService;
+import com.example.merkletree.service.EvidenceRecordService;
 
 import eu.europa.esig.dss.model.DSSDocument;
 import eu.europa.esig.dss.spi.validation.CommonCertificateVerifier;
@@ -30,6 +34,26 @@ public class PreservationController {
 
     @Autowired
     private ConfigService configService;
+
+    @Autowired
+    private EvidenceRecordService evidenceRecordService;
+
+    @PostMapping("/er")
+    public ResponseEntity<InputStreamResource> createEvidenceRecord(@RequestParam("path") String path) {
+        File file = documentService.getFile(path);
+        byte[] evidenceRecord;
+        try {
+            evidenceRecord = evidenceRecordService.createEvidenceRecord(file).toASN1Primitive().getEncoded();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to encode evidence record", e);
+        }
+
+        InputStreamResource resource = new InputStreamResource(new ByteArrayInputStream(evidenceRecord));
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + path + ".ers\"")
+                .body(resource);
+    }
 
     @PostMapping("/sign")
     public ResponseEntity<InputStreamResource> sign(@RequestParam("path") String path) {
