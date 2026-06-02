@@ -2,6 +2,8 @@ package com.example.merkletree.model;
 
 import java.util.List;
 
+import com.example.integrity.model.Composite;
+
 public class TestComposite extends Composite {
 
     private String content = null;

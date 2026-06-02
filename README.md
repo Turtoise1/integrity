@@ -1,13 +1,5 @@
-# Development
-
-Install:
+# Run
 
 ```
-mvn clean install
-```
-
-Run:
-
-```
-mvn exec:java -Dexec.mainClass="com.example.merkletree.Application"
+./mvnw spring-boot:run
 ```

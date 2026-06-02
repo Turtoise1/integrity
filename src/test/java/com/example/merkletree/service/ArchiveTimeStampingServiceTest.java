@@ -12,9 +12,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
-import com.example.merkletree.model.Composite;
-import com.example.merkletree.model.HashAlgorithm;
-import com.example.merkletree.model.MerkleTreeNode;
+import com.example.integrity.model.Composite;
+import com.example.integrity.model.HashAlgorithm;
+import com.example.integrity.model.MerkleTreeNode;
+import com.example.integrity.service.ArchiveTimeStampingService;
 import com.example.merkletree.utils.TestCompositeUtils;
 
 @SpringBootTest

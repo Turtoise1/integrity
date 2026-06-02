@@ -4,6 +4,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import com.example.integrity.service.ConfigService;
+import com.example.integrity.service.DigitalSignatureService;
+import com.example.integrity.service.DocumentService;
+
 @SpringBootTest
 public class DigitalSignatureServiceTest {
 

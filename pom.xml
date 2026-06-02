@@ -12,10 +12,11 @@
 		<relativePath /> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.example</groupId>
-	<artifactId>merkletree</artifactId>
+	<artifactId>integrity</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>Integrity</name>
-	<description>A Java Spring application for testing and comparing long term integrity methods like Advanced Electronic Signatures. Frontend at https://github.com/Turtoise1/integrity-frontend.</description>
+	<description
+    >A Java Spring application for testing and comparing long term integrity methods like Advanced Electronic Signatures. Frontend at https://github.com/Turtoise1/integrity-frontend.</description>
 	<url />
 	<licenses>
 		<license />

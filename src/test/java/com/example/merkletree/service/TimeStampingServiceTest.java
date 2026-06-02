@@ -31,11 +31,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
-import com.example.merkletree.model.Composite;
-import com.example.merkletree.model.HashAlgorithm;
-import com.example.merkletree.model.MerkleTreeNode;
+import com.example.integrity.model.Composite;
+import com.example.integrity.model.HashAlgorithm;
+import com.example.integrity.model.MerkleTreeNode;
+import com.example.integrity.service.TimeStampingService;
+import com.example.integrity.utils.CryptoUtils;
 import com.example.merkletree.utils.AllSelector;
-import com.example.merkletree.utils.CryptoUtils;
 import com.example.merkletree.utils.TestCompositeUtils;
 import com.example.merkletree.utils.TestUtils;
 
