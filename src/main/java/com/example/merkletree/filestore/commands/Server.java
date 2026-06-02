@@ -15,15 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.example.merkletree.filestore.cli;
+package com.example.merkletree.filestore.commands;
 
-import com.beust.jcommander.Parameter;
-import com.beust.jcommander.Parameters;
 import org.apache.ratis.RaftConfigKeys;
 import org.apache.ratis.conf.ConfUtils;
 import org.apache.ratis.conf.RaftProperties;
 import org.apache.ratis.datastream.SupportedDataStreamType;
-import com.example.merkletree.filestore.cli.SubCommandBase;
 import com.example.merkletree.filestore.FileStoreCommon;
 import com.example.merkletree.filestore.FileStoreStateMachine;
 import org.apache.ratis.grpc.GrpcConfigKeys;
@@ -50,27 +47,61 @@ import java.util.concurrent.TimeUnit;
 /**
  * Class to start a ratis filestore example server.
  */
-@Parameters(commandDescription = "Start an filestore server")
-public class Server extends SubCommandBase {
+public class Server extends CommandBase {
 
-    @Parameter(names = { "--id", "-i" }, description = "Raft id of this server", required = true)
+    /** Raft id of this server */
     private String id;
 
-    @Parameter(names = { "--storage", "-s" }, description = "Storage dir, eg. --storage dir1 --storage dir2",
-               required = true)
+    /** Storage dir, eg. --storage dir1 --storage dir2 */
     private List<File> storageDir = new ArrayList<>();
 
-    @Parameter(names = { "--writeThreadNum" }, description = "Number of write thread")
+    /** Number of write thread */
     private int writeThreadNum = 20;
 
-    @Parameter(names = { "--readThreadNum" }, description = "Number of read thread")
+    /** Number of read thread */
     private int readThreadNum = 20;
 
-    @Parameter(names = { "--commitThreadNum" }, description = "Number of commit thread")
+    /** Number of commit thread */
     private int commitThreadNum = 3;
 
-    @Parameter(names = { "--deleteThreadNum" }, description = "Number of delete thread")
+    /** Number of delete thread */
     private int deleteThreadNum = 3;
+
+    /**
+     *
+     * @param raftGroupId     the optional raft group id
+     * @param peers           the raft peers (format: name:host:port:dataStreamPort:clientPort:adminPort,...)
+     * @param id              the raft peer id
+     * @param storageDir      the storage dir
+     * @param writeThreadNum  the optional number of write thread
+     * @param readThreadNum   the optional number of read thread
+     * @param commitThreadNum the optional number of commit thread
+     * @param deleteThreadNum the optional number of delete thread
+     */
+    public Server(String raftGroupId, String peers, String id, List<File> storageDir, Integer writeThreadNum,
+            Integer readThreadNum, Integer commitThreadNum, Integer deleteThreadNum) {
+        super(raftGroupId, peers);
+        if (id == null) {
+            throw new IllegalArgumentException("id must be specified");
+        }
+        this.id = id;
+        if (storageDir == null || storageDir.isEmpty()) {
+            throw new IllegalArgumentException("storageDir must be specified");
+        }
+        this.storageDir = storageDir;
+        if (writeThreadNum != null) {
+            this.writeThreadNum = writeThreadNum;
+        }
+        if (readThreadNum != null) {
+            this.readThreadNum = readThreadNum;
+        }
+        if (commitThreadNum != null) {
+            this.commitThreadNum = commitThreadNum;
+        }
+        if (deleteThreadNum != null) {
+            this.deleteThreadNum = deleteThreadNum;
+        }
+    }
 
     @Override
     public void run() throws Exception {

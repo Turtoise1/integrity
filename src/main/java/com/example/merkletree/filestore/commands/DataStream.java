@@ -15,10 +15,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.example.merkletree.filestore.cli;
+package com.example.merkletree.filestore.commands;
 
-import com.beust.jcommander.Parameter;
-import com.beust.jcommander.Parameters;
 import org.apache.ratis.client.api.DataStreamOutput;
 import com.example.merkletree.filestore.FileStoreClient;
 import org.apache.ratis.io.StandardWriteOption;
@@ -51,7 +49,6 @@ import java.util.function.BiFunction;
 /**
  * Subcommand to generate load in filestore data stream state machine.
  */
-@Parameters(commandDescription = "Load Generator for FileStore DataStream")
 public class DataStream extends Client {
     enum Type {
         DirectByteBuffer(DirectByteBufferType::new),
@@ -88,12 +85,34 @@ public class DataStream extends Client {
                 () -> "Unexpected description: " + DESCRIPTION + " does not equal to the expected string " + expected);
     }
 
-    @Parameter(names = { "--type" }, description = DESCRIPTION, required = true)
+    /** Data stream type, one of "DirectByteBuffer", "MappedByteBuffer", "NettyFileRegion" */
     private String dataStreamType = Type.NettyFileRegion.name();
 
-    @Parameter(names = { "--syncSize" }, description = "Sync every syncSize, syncSize % bufferSize should be zero," +
-            "-1 means on sync", required = true)
+    /** Sync size in bytes, sync every syncSize, syncSize % bufferSize should be zero, -1 means on sync */
     private int syncSize = -1;
+
+    /**
+     *
+     * @param raftGroupId       the optional raft group id
+     * @param peers             the raft peers (format: name:host:port:dataStreamPort:clientPort:adminPort,...)
+     * @param fileSizeInBytes   the size of each file in bytes
+     * @param bufferSizeInBytes the size of buffer in bytes, should less than 4MB, i.e BUFFER_BYTE_LIMIT_DEFAULT
+     * @param numFiles          the number of files to be written
+     * @param numClients        the number of clients to use
+     * @param storageDir        the storage directories
+     * @param dataStreamType    the data stream type, one of "DirectByteBuffer", "MappedByteBuffer", "NettyFileRegion"
+     * @param syncSize          the sync size in bytes, sync every syncSize, syncSize % bufferSize should be zero, -1
+     *                          means on sync
+     */
+    public DataStream(String raftGroupId, String peers, long fileSizeInBytes, Integer bufferSizeInBytes, int numFiles,
+            int numClients, List<File> storageDir, String dataStreamType, int syncSize) {
+        super(raftGroupId, peers, fileSizeInBytes, bufferSizeInBytes, numFiles, numClients, storageDir);
+        if (dataStreamType == null) {
+            throw new IllegalArgumentException("dataStreamType must not be null");
+        }
+        this.dataStreamType = dataStreamType;
+        this.syncSize = syncSize;
+    }
 
     int getSyncSize() {
         return syncSize;

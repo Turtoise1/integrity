@@ -15,9 +15,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.example.merkletree.filestore.cli;
+package com.example.merkletree.filestore.commands;
 
-import com.beust.jcommander.Parameter;
 import org.apache.ratis.protocol.RaftPeer;
 import org.apache.ratis.protocol.RaftPeerId;
 import org.apache.ratis.protocol.RoutingTable;
@@ -29,17 +28,29 @@ import java.util.stream.Stream;
 /**
  * Base subcommand class which includes the basic raft properties.
  */
-public abstract class SubCommandBase {
+public abstract class CommandBase {
 
-    @Parameter(names = { "--raftGroup",
-            "-g" }, description = "Raft group identifier")
+    /** Raft group identifier */
     private String raftGroupId = "demoRaftGroup123";
 
-    @Parameter(names = { "--peers", "-r" },
-               description = "Raft peers (format: name:host:port:dataStreamPort:clientPort:adminPort,"
-                       + "...)",
-               required = true)
+    /** Raft peers (format: name:host:port:dataStreamPort:clientPort:adminPort,...) */
     private String peers;
+
+    /**
+     * Constructs a CommandBase with the given raft group id and peers.
+     *
+     * @param raftGroupId the optional raft group id
+     * @param peers       the raft peers (format: name:host:port:dataStreamPort:clientPort:adminPort,...)
+     */
+    public CommandBase(String raftGroupId, String peers) {
+        if (raftGroupId != null) {
+            this.raftGroupId = raftGroupId;
+        }
+        if (this.peers == null) {
+            throw new RuntimeException("peers must be specified");
+        }
+        this.peers = peers;
+    }
 
     public static RaftPeer[] parsePeers(String peers) {
         return Stream.of(peers.split(",")).map(address -> {

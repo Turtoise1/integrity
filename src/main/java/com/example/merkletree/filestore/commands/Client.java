@@ -15,9 +15,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.example.merkletree.filestore.cli;
+package com.example.merkletree.filestore.commands;
 
-import com.beust.jcommander.Parameter;
 import org.apache.ratis.RaftConfigKeys;
 import org.apache.ratis.client.RaftClient;
 import org.apache.ratis.client.RaftClientConfigKeys;
@@ -53,26 +52,49 @@ import java.util.concurrent.TimeUnit;
 /**
  * Client to connect filestore example cluster.
  */
-public abstract class Client extends SubCommandBase {
+public abstract class Client extends CommandBase {
 
-    @Parameter(names = { "--size" }, description = "Size of each file in bytes", required = true)
+    /** Size of each file in bytes */
     private long fileSizeInBytes;
 
-    @Parameter(names = { "--bufferSize" }, description = "Size of buffer in bytes, should less than 4MB, " +
-            "i.e BUFFER_BYTE_LIMIT_DEFAULT", required = false)
+    /** Size of buffer in bytes, should less than 4MB, i.e BUFFER_BYTE_LIMIT_DEFAULT */
     private int bufferSizeInBytes = 1024;
 
-    @Parameter(names = { "--numFiles" }, description = "Number of files to be written", required = true)
+    /** Number of files to be written */
     private int numFiles;
 
-    @Parameter(names = { "--numClients" }, description = "Number of clients to write", required = true)
+    /** Number of clients to use */
     private int numClients;
 
-    @Parameter(names = { "--storage", "-s" }, description = "Storage dir, eg. --storage dir1 --storage dir2",
-               required = true)
+    /** Storage directories */
     private List<File> storageDir = new ArrayList<>();
 
     private static final int MAX_THREADS_NUM = 1000;
+
+    /**
+     *
+     * @param raftGroupId       the optional raft group id
+     * @param peers             the raft peers (format: name:host:port:dataStreamPort:clientPort:adminPort,...)
+     * @param fileSizeInBytes   the size of each file in bytes
+     * @param bufferSizeInBytes the size of buffer in bytes, should less than 4MB, i.e BUFFER_BYTE_LIMIT_DEFAULT
+     * @param numFiles          the number of files to be written
+     * @param numClients        the number of clients to use
+     * @param storageDir        the storage directories
+     */
+    public Client(String raftGroupId, String peers, long fileSizeInBytes, Integer bufferSizeInBytes, int numFiles,
+            int numClients, List<File> storageDir) {
+        super(raftGroupId, peers);
+        this.fileSizeInBytes = fileSizeInBytes;
+        this.numFiles = numFiles;
+        this.numClients = numClients;
+        if (storageDir == null || storageDir.isEmpty()) {
+            throw new IllegalArgumentException("storageDir must not be null or empty");
+        }
+        this.storageDir = storageDir;
+        if (bufferSizeInBytes != null) {
+            this.bufferSizeInBytes = bufferSizeInBytes;
+        }
+    }
 
     public int getNumThread() {
         return numFiles < MAX_THREADS_NUM ? numFiles : MAX_THREADS_NUM;
