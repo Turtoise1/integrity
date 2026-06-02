@@ -1,6 +1,10 @@
 package com.example.merkletree.service;
 
+import com.example.merkletree.config.RaftConfiguration;
 import com.example.merkletree.filestore.FileStoreClient;
+
+import jakarta.annotation.PreDestroy;
+
 import org.apache.ratis.RaftConfigKeys;
 import org.apache.ratis.client.RaftClient;
 import org.apache.ratis.client.RaftClientConfigKeys;
@@ -36,25 +40,98 @@ public class DistributedSystemService {
     @Autowired
     private DocumentService documentService;
 
-    private static final String RAFT_GROUP_ID = "demoRaftGroup123";
-    private static final String PEERS = "n0:127.0.0.1:6000,n1:127.0.0.1:6001,n2:127.0.0.1:6002";
-
+    private final RaftConfiguration raftConfig;
+    private FileStoreClient fileStoreClient;
     private final ConcurrentHashMap<String, Long> fileMetadata = new ConcurrentHashMap<>();
+
+    public DistributedSystemService(RaftConfiguration raftConfig) {
+        this.raftConfig = raftConfig;
+    }
+
+    private synchronized FileStoreClient getClient() {
+        if (fileStoreClient == null) {
+            fileStoreClient = createFileStoreClient();
+        }
+        return fileStoreClient;
+    }
+
+    private FileStoreClient createFileStoreClient() {
+        int raftSegmentPreallocatedSize = 1024 * 1024 * 1024;
+        RaftProperties raftProperties = new RaftProperties();
+        RaftConfigKeys.Rpc.setType(raftProperties, SupportedRpcType.GRPC);
+        GrpcConfigKeys.setMessageSizeMax(raftProperties,
+                SizeInBytes.valueOf(raftSegmentPreallocatedSize));
+        RaftServerConfigKeys.Log.Appender.setBufferByteLimit(raftProperties,
+                SizeInBytes.valueOf(raftSegmentPreallocatedSize));
+        RaftServerConfigKeys.Log.setWriteBufferSize(raftProperties,
+                SizeInBytes.valueOf(raftSegmentPreallocatedSize));
+        RaftServerConfigKeys.Log.setPreallocatedSize(raftProperties,
+                SizeInBytes.valueOf(raftSegmentPreallocatedSize));
+        RaftServerConfigKeys.Log.setSegmentSizeMax(raftProperties,
+                SizeInBytes.valueOf(1 * 1024 * 1024 * 1024L));
+        RaftConfigKeys.DataStream.setType(raftProperties, SupportedDataStreamType.NETTY);
+
+        RaftServerConfigKeys.Log.setSegmentCacheNumMax(raftProperties, 2);
+
+        RaftClientConfigKeys.Rpc.setRequestTimeout(raftProperties,
+                TimeDuration.valueOf(50000, TimeUnit.MILLISECONDS));
+        RaftClientConfigKeys.Async.setOutstandingRequestsMax(raftProperties, 1000);
+
+        RaftPeer[] peers = parsePeers(raftConfig.getPeers());
+        RaftGroup raftGroup = RaftGroup.valueOf(
+                RaftGroupId.valueOf(ByteString.copyFromUtf8(raftConfig.getRaftGroupId())),
+                peers);
+
+        RaftClient.Builder builder = RaftClient.newBuilder().setProperties(raftProperties);
+        builder.setRaftGroup(raftGroup);
+        builder.setClientRpc(
+                new GrpcFactory(new org.apache.ratis.conf.Parameters())
+                        .newRaftClientRpc(ClientId.randomId(), raftProperties));
+        builder.setPrimaryDataStreamServer(peers[0]);
+        RaftClient client = builder.build();
+
+        return new FileStoreClient(client);
+    }
+
+    private RaftPeer[] parsePeers(String peers) {
+        String[] peerAddresses = peers.split(",");
+        RaftPeer[] result = new RaftPeer[peerAddresses.length];
+        for (int i = 0; i < peerAddresses.length; i++) {
+            String[] addressParts = peerAddresses[i].split(":");
+            RaftPeer.Builder builder = RaftPeer.newBuilder();
+            builder.setId(addressParts[0]).setAddress(addressParts[1] + ":" + addressParts[2]);
+            if (addressParts.length >= 4) {
+                builder.setDataStreamAddress(addressParts[1] + ":" + addressParts[3]);
+                if (addressParts.length >= 5) {
+                    builder.setClientAddress(addressParts[1] + ":" + addressParts[4]);
+                    if (addressParts.length >= 6) {
+                        builder.setAdminAddress(addressParts[1] + ":" + addressParts[5]);
+                    }
+                }
+            }
+            result[i] = builder.build();
+        }
+        return result;
+    }
 
     public void distribute(String path) throws IOException {
         File file = documentService.getFile(path);
+        Path filePath = file.toPath();
+        if (!Files.exists(filePath)) {
+            throw new IOException("File not found: " + path);
+        }
+
         FileStoreClient client = getClient();
 
-        String fileName = file.getName().toString();
-        long fileSize = Files.size(file.toPath());
+        String fileName = filePath.getFileName().toString();
+        long fileSize = Files.size(filePath);
 
-        // Read file content in chunks for large files
-        byte[] fileContent = documentService.getFileContent(path);
+        // Read file content
+        byte[] fileContent = Files.readAllBytes(filePath);
         ByteBuffer buffer = ByteBuffer.wrap(fileContent);
 
         // Write file to distributed storage
-        // The write method takes: path, offset, close, buffer, sync
-        client.write(fileName, 0, false, buffer, false);
+        client.write(fileName, 0, true, buffer, false);
 
         // Track file metadata for listing
         fileMetadata.put(fileName, fileSize);
@@ -77,5 +154,12 @@ public class DistributedSystemService {
         // Read the entire file
         ByteString data = client.read(fileName, 0, fileSize);
         return data.toByteArray();
+    }
+
+    @PreDestroy
+    public void cleanup() throws IOException {
+        if (fileStoreClient != null) {
+            fileStoreClient.close();
+        }
     }
 }

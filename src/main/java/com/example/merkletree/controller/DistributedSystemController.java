@@ -8,9 +8,12 @@ import org.springframework.web.bind.annotation.*;
 
 import com.example.merkletree.service.DistributedSystemService;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.ByteArrayInputStream;
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/distributed/system")
 public class DistributedSystemController {
@@ -27,7 +30,7 @@ public class DistributedSystemController {
             distributedSystemService.distribute(path);
             return ResponseEntity.ok().build();
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
+            throw new RuntimeException("Failed to distribute file: " + path, e);
         }
     }
 
@@ -37,14 +40,14 @@ public class DistributedSystemController {
             List<String> files = distributedSystemService.listData();
             return ResponseEntity.ok(files);
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
+            throw new RuntimeException("Failed to list data", e);
         }
     }
 
     @GetMapping("/retrieve")
-    public ResponseEntity<InputStreamResource> retrieve(@RequestParam("filePath") String filePath) {
+    public ResponseEntity<InputStreamResource> retrieve(@RequestParam("path") String path) {
         try {
-            byte[] content = distributedSystemService.retrieve(filePath);
+            byte[] content = distributedSystemService.retrieve(path);
             if (content == null) {
                 return ResponseEntity.notFound().build();
             }
@@ -52,10 +55,10 @@ public class DistributedSystemController {
             InputStreamResource resource = new InputStreamResource(new ByteArrayInputStream(content));
             return ResponseEntity.ok()
                     .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filePath + "\"")
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + path + "\"")
                     .body(resource);
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
+            throw new RuntimeException("Failed to retrieve file: " + path, e);
         }
     }
 }

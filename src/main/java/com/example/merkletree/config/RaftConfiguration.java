@@ -1,56 +1,78 @@
 package com.example.merkletree.config;
 
-import org.apache.ratis.conf.RaftProperties;
-import org.apache.ratis.protocol.RaftGroup;
-import org.apache.ratis.protocol.RaftGroupId;
-import org.apache.ratis.protocol.RaftPeer;
-import org.apache.ratis.protocol.RaftPeerId;
+import com.example.merkletree.filestore.commands.Server;
+
+import jakarta.annotation.PostConstruct;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 @Configuration
+@Slf4j
 public class RaftConfiguration {
 
-    @Value("${raft.group.id:integrity-group}")
-    private String groupIdString;
+    @Value("${raft.group.id}")
+    private String raftGroupId;
 
-    @Value("${raft.peers:localhost:8000,localhost:8001,localhost:8002}")
-    private String[] peerAddresses;
+    @Value("${raft.peers}")
+    private String peers;
 
-    @Bean
-    public RaftGroup raftGroup() {
-        List<RaftPeer> peers = new ArrayList<>();
+    @Value("${raft.storage.base}")
+    private String storageBaseDir;
+
+    private List<Server> servers = new ArrayList<>();
+
+    @PostConstruct
+    public void startServers() {
+
+        log.info("[{}: Peers {}] Starting Raft servers...", raftGroupId, peers);
+
+        String[] peerAddresses = peers.split(",");
+
         for (int i = 0; i < peerAddresses.length; i++) {
-            String address = peerAddresses[i];
-            RaftPeerId peerId = RaftPeerId.valueOf(address);
-            peers.add(RaftPeer.newBuilder()
-                    .setId(peerId)
-                    .setAddress(address)
-                    .build());
+            String peer = peerAddresses[i];
+            String[] parts = peer.split(":");
+            String id = parts[0];
+
+            File storageDir = new File(storageBaseDir + "/" + id);
+            storageDir.mkdirs();
+
+            List<File> storageDirs = new ArrayList<>();
+            storageDirs.add(storageDir);
+
+            log.info("Starting Raft server {} on port {}", id, parts[2]);
+            Server server = new Server(raftGroupId, peers, id, storageDirs, null, null, null, null);
+            servers.add(server);
+
+            new Thread(() -> {
+                try {
+                    server.run();
+                } catch (Exception e) {
+                    log.error("Server {} failed", id, e);
+                }
+            }).start();
+
+            log.info("Started Raft server {} on port {}", id, parts[2]);
         }
-        
-        // Create a UUID from the group ID string
-        UUID uuid = UUID.nameUUIDFromBytes(groupIdString.getBytes());
-        RaftGroupId raftGroupId = RaftGroupId.valueOf(uuid);
-        
-        return RaftGroup.valueOf(raftGroupId, peers);
+
+        // Give servers time to start
+        try {
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
-    @Bean
-    public RaftProperties raftProperties() {
-        RaftProperties properties = new RaftProperties();
-        
-        // Set state machine thread counts
-        properties.setInt("example.filestore.statemachine.write.thread.num", 1);
-        properties.setInt("example.filestore.statemachine.read.thread.num", 1);
-        properties.setInt("example.filestore.statemachine.commit.thread.num", 1);
-        properties.setInt("example.filestore.statemachine.delete.thread.num", 1);
-        
-        return properties;
+    public String getPeers() {
+        return peers;
+    }
+
+    public String getRaftGroupId() {
+        return raftGroupId;
     }
 }

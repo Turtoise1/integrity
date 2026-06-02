@@ -24,7 +24,6 @@ import org.apache.ratis.datastream.SupportedDataStreamType;
 import com.example.merkletree.filestore.FileStoreCommon;
 import com.example.merkletree.filestore.FileStoreStateMachine;
 import org.apache.ratis.grpc.GrpcConfigKeys;
-import org.apache.ratis.metrics.impl.JvmMetrics;
 import org.apache.ratis.netty.NettyConfigKeys;
 import org.apache.ratis.protocol.RaftGroup;
 import org.apache.ratis.protocol.RaftGroupId;
@@ -78,9 +77,9 @@ public class Server extends CommandBase {
      * @param commitThreadNum the optional number of commit thread
      * @param deleteThreadNum the optional number of delete thread
      */
-    public Server(String raftGroupId, String peers, String id, List<File> storageDir, Integer writeThreadNum,
+    public Server(String groupId, String peers, String id, List<File> storageDir, Integer writeThreadNum,
             Integer readThreadNum, Integer commitThreadNum, Integer deleteThreadNum) {
-        super(raftGroupId, peers);
+        super(groupId, peers);
         if (id == null) {
             throw new IllegalArgumentException("id must be specified");
         }
@@ -105,8 +104,6 @@ public class Server extends CommandBase {
 
     @Override
     public void run() throws Exception {
-        JvmMetrics.initJvmMetrics(TimeDuration.valueOf(10, TimeUnit.SECONDS));
-
         RaftPeerId peerId = RaftPeerId.valueOf(id);
         RaftProperties properties = new RaftProperties();
 

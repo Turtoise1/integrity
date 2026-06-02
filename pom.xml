@@ -124,6 +124,11 @@
             <artifactId>ratis-metrics-default</artifactId>
             <version>3.2.2</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.ratis</groupId>
+            <artifactId>ratis-common</artifactId>
+            <version>3.2.2</version>
+        </dependency>
 	</dependencies>
 
 	<build>

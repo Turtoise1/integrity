@@ -39,17 +39,17 @@ public abstract class CommandBase {
     /**
      * Constructs a CommandBase with the given raft group id and peers.
      *
-     * @param raftGroupId the optional raft group id
-     * @param peers       the raft peers (format: name:host:port:dataStreamPort:clientPort:adminPort,...)
+     * @param peers   the raft peers (format: name:host:port:dataStreamPort:clientPort:adminPort,...)
+     * @param groupId the optional raft group id
      */
-    public CommandBase(String raftGroupId, String peers) {
-        if (raftGroupId != null) {
-            this.raftGroupId = raftGroupId;
-        }
-        if (this.peers == null) {
+    public CommandBase(String groupId, String peers) {
+        if (peers == null) {
             throw new RuntimeException("peers must be specified");
         }
         this.peers = peers;
+        if (groupId != null) {
+            this.raftGroupId = groupId;
+        }
     }
 
     public static RaftPeer[] parsePeers(String peers) {
