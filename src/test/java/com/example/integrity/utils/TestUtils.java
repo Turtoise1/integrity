@@ -1,4 +1,4 @@
-package com.example.merkletree.utils;
+package com.example.integrity.utils;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;

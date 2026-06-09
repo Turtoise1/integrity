@@ -1,4 +1,4 @@
-package com.example.merkletree.service;
+package com.example.integrity.service;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -35,10 +35,10 @@ import com.example.integrity.model.Composite;
 import com.example.integrity.model.HashAlgorithm;
 import com.example.integrity.model.MerkleTreeNode;
 import com.example.integrity.service.TimeStampingService;
+import com.example.integrity.utils.AllSelector;
 import com.example.integrity.utils.CryptoUtils;
-import com.example.merkletree.utils.AllSelector;
-import com.example.merkletree.utils.TestCompositeUtils;
-import com.example.merkletree.utils.TestUtils;
+import com.example.integrity.utils.TestCompositeUtils;
+import com.example.integrity.utils.TestUtils;
 
 @SpringBootTest
 public class TimeStampingServiceTest {

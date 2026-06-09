@@ -1,4 +1,4 @@
-package com.example.merkletree.service;
+package com.example.integrity.service;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

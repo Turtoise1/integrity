@@ -1,11 +1,11 @@
-package com.example.merkletree.utils;
+package com.example.integrity.utils;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 import com.example.integrity.model.Composite;
-import com.example.merkletree.model.TestComposite;
+import com.example.integrity.model.TestComposite;
 
 public class TestCompositeUtils {
 

@@ -1,4 +1,4 @@
-package com.example.merkletree.model;
+package com.example.integrity.model;
 
 import java.util.List;
 

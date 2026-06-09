@@ -1,4 +1,4 @@
-package com.example.merkletree.service;
+package com.example.integrity.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -16,7 +16,7 @@ import com.example.integrity.model.Composite;
 import com.example.integrity.model.HashAlgorithm;
 import com.example.integrity.model.MerkleTreeNode;
 import com.example.integrity.service.ArchiveTimeStampingService;
-import com.example.merkletree.utils.TestCompositeUtils;
+import com.example.integrity.utils.TestCompositeUtils;
 
 @SpringBootTest
 class ArchiveTimeStampingServiceTest {
