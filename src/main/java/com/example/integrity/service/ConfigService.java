@@ -12,9 +12,13 @@ import eu.europa.esig.dss.service.tsp.OnlineTSPSource;
 import eu.europa.esig.dss.spi.DSSUtils;
 import eu.europa.esig.dss.spi.x509.CommonTrustedCertificateSource;
 import eu.europa.esig.dss.spi.x509.TrustedCertificateSource;
+import eu.europa.esig.dss.spi.x509.revocation.crl.CRLSource;
+import eu.europa.esig.dss.spi.x509.revocation.crl.ExternalResourcesCRLSource;
 import eu.europa.esig.dss.spi.x509.tsp.TSPSource;
 import eu.europa.esig.dss.token.Pkcs12SignatureToken;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 public class ConfigService {
 
@@ -32,7 +36,7 @@ public class ConfigService {
         Pkcs12SignatureToken signatureToken = null;
         try {
             signatureToken = new Pkcs12SignatureToken(
-                    "src/test/resources/test.p12",
+                    "src/test/resources/signer.p12",
                     new PasswordProtection("changeit".toCharArray()));
         } catch (Exception e) {
             throw new RuntimeException("Failed to load signing token", e);
@@ -40,14 +44,28 @@ public class ConfigService {
         return signatureToken;
     }
 
+    public ExternalResourcesCRLSource getDefaultCrlSource() {
+        // Use ExternalResourcesCRLSource for the local CRL file
+        ExternalResourcesCRLSource crlSource = new ExternalResourcesCRLSource(
+                new String("src/test/demoCA/crl/rootca.crl"));
+        return crlSource;
+    }
+
     public CommonTrustedCertificateSource getDefaultTrustedCertificateSource() {
         CommonTrustedCertificateSource trustedCertificateSource = new CommonTrustedCertificateSource();
         // Add the TSA certificate
         addDfnCertificates(trustedCertificateSource);
-        // Add default signature token
-        getDefaultSignatureToken().getKeys().stream()
-                .forEach(k -> trustedCertificateSource.addCertificate(k.getCertificate()));
+        // Add signer certificates
+        addSignerCertificates(trustedCertificateSource);
         return trustedCertificateSource;
+    }
+
+    private void addSignerCertificates(TrustedCertificateSource source) {
+        String caDirectory = "src/test/resources/demoCA/";
+        CertificateToken signerCert = DSSUtils.loadCertificate(new File(caDirectory + "certs/signer.crt"));
+        source.addCertificate(signerCert);
+        CertificateToken caCert = DSSUtils.loadCertificate(new File(caDirectory + "cacert.pem"));
+        source.addCertificate(caCert);
     }
 
     private void addDfnCertificates(TrustedCertificateSource source) {
@@ -62,6 +80,8 @@ public class ConfigService {
         CertificateToken intermediateCert = DSSUtils
                 .loadCertificate(new File(dfnPkiDirectory + "DFN-Verein_Certification_Authority_2.cer"));
         source.addCertificate(intermediateCert);
-        // root cert T-TeleSec GlobalRoot Class 2 should be preinstalled
+        CertificateToken rootCert = DSSUtils
+                .loadCertificate(new File(certDirectory + "GlobalRoot_Class_2.crt"));
+        source.addCertificate(rootCert);
     }
 }

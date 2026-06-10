@@ -1,5 +1,6 @@
 package com.example.integrity.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import eu.europa.esig.dss.enumerations.ASiCContainerType;
@@ -16,6 +17,8 @@ import eu.europa.esig.dss.spi.signature.AdvancedSignature;
 import eu.europa.esig.dss.spi.validation.CertificateVerifier;
 import eu.europa.esig.dss.spi.validation.CommonCertificateVerifier;
 import eu.europa.esig.dss.spi.x509.TrustedCertificateSource;
+import eu.europa.esig.dss.spi.x509.revocation.crl.CRLSource;
+import eu.europa.esig.dss.spi.x509.revocation.crl.OfflineCRLSource;
 import eu.europa.esig.dss.spi.x509.tsp.TSPSource;
 import eu.europa.esig.dss.token.DSSPrivateKeyEntry;
 import eu.europa.esig.dss.token.Pkcs12SignatureToken;
@@ -30,6 +33,9 @@ import java.util.List;
 @Slf4j
 @Service
 public class DigitalSignatureService {
+
+    @Autowired
+    private ConfigService configService;
 
     public DSSDocument extendSignature(DSSDocument signedDocument, Pkcs12SignatureToken signatureToken,
             TrustedCertificateSource trustedCertificateSource, TSPSource tspSource) {
@@ -51,12 +57,13 @@ public class DigitalSignatureService {
         }
 
         if (highestLevel == SignatureLevel.XAdES_BASELINE_B) {
-            extendXadesToT(signedDocument, documentExtender, certificateVerifier, tspSource);
+            signedDocument = extendXadesToT(signedDocument, documentExtender, certificateVerifier, tspSource);
         } else if (highestLevel == SignatureLevel.XAdES_BASELINE_T) {
-            extendXadesToLT(signedDocument, documentExtender, certificateVerifier, tspSource, trustedCertificateSource);
+            signedDocument = extendXadesToLT(signedDocument, documentExtender, certificateVerifier, tspSource,
+                    trustedCertificateSource);
         } else if (highestLevel == SignatureLevel.XAdES_BASELINE_LT
                 || highestLevel == SignatureLevel.XAdES_BASELINE_LTA) {
-            extendXadesToLTA(signedDocument, documentExtender, certificateVerifier, tspSource,
+            signedDocument = extendXadesToLTA(signedDocument, documentExtender, certificateVerifier, tspSource,
                     trustedCertificateSource);
         } else {
             throw new IllegalArgumentException("Unsupported signature level: " + highestLevel);
@@ -65,17 +72,17 @@ public class DigitalSignatureService {
         return signedDocument;
     }
 
-    private void extendXadesToT(DSSDocument signedDocument, SignedDocumentExtender documentExtender,
+    private DSSDocument extendXadesToT(DSSDocument signedDocument, SignedDocumentExtender documentExtender,
             CertificateVerifier certificateVerifier, TSPSource tspSource) {
 
         // Set the TSPSource for a timestamp extraction
         documentExtender.setTspSource(tspSource);
 
         // Extend the document, by specifying the target augmentation profile
-        signedDocument = documentExtender.extendDocument(SignatureProfile.BASELINE_T);
+        return documentExtender.extendDocument(SignatureProfile.BASELINE_T);
     }
 
-    private void extendXadesToLT(DSSDocument signedDocument, SignedDocumentExtender documentExtender,
+    private DSSDocument extendXadesToLT(DSSDocument signedDocument, SignedDocumentExtender documentExtender,
             CertificateVerifier certificateVerifier, TSPSource tspSource,
             TrustedCertificateSource trustedCertificateSource) {
 
@@ -89,27 +96,29 @@ public class DigitalSignatureService {
         // Trust anchors should be defined for revocation data requesting
         certificateVerifier.setTrustedCertSources(trustedCertificateSource);
 
-        // Extend the document
-        signedDocument = documentExtender.extendDocument(SignatureProfile.BASELINE_LT);
+        certificateVerifier.setCheckRevocationForUntrustedChains(true);
 
+        // Extend the document
+        return documentExtender.extendDocument(SignatureProfile.BASELINE_LT);
     }
 
-    private void extendXadesToLTA(DSSDocument signedDocument, SignedDocumentExtender documentExtender,
+    private DSSDocument extendXadesToLTA(DSSDocument signedDocument, SignedDocumentExtender documentExtender,
             CertificateVerifier certificateVerifier, TSPSource tspSource,
             TrustedCertificateSource trustedCertificateSource) {
 
         // Set the TSPSource for a timestamp extraction
         documentExtender.setTspSource(tspSource);
 
-        // init revocation sources for CRL/OCSP requesting
-        certificateVerifier.setCrlSource(new OnlineCRLSource());
-        certificateVerifier.setOcspSource(new OnlineOCSPSource());
+        // init revocation sources for CRL/OCSP requesting, typically online
+        // certificateVerifier.setCrlSource(new OnlineCRLSource());
+        // certificateVerifier.setOcspSource(new OnlineOCSPSource());
+        certificateVerifier.setCrlSource(configService.getDefaultCrlSource());
 
         // Trust anchors should be defined for revocation data requesting
         certificateVerifier.setTrustedCertSources(trustedCertificateSource);
 
         // Extend the document
-        signedDocument = documentExtender.extendDocument(SignatureProfile.BASELINE_LTA);
+        return documentExtender.extendDocument(SignatureProfile.BASELINE_LTA);
     }
 
     public DSSDocument sign(List<DSSDocument> documentsToSign, Pkcs12SignatureToken signatureToken,
@@ -120,13 +129,13 @@ public class DigitalSignatureService {
         DSSDocument signedDocument = signBaselineB(documentsToSign, signatureToken, certificateVerifier);
 
         // Extend to BASELINE T
-        extendSignature(signedDocument, signatureToken, trustedCertificateSource, tspSource);
+        signedDocument = extendSignature(signedDocument, signatureToken, trustedCertificateSource, tspSource);
 
         // Extend to BASELINE LT
-        extendSignature(signedDocument, signatureToken, trustedCertificateSource, tspSource);
+        signedDocument = extendSignature(signedDocument, signatureToken, trustedCertificateSource, tspSource);
 
         // Extend to BASELINE LTA
-        extendSignature(signedDocument, signatureToken, trustedCertificateSource, tspSource);
+        signedDocument = extendSignature(signedDocument, signatureToken, trustedCertificateSource, tspSource);
 
         // Verify the signed document
         validateSignature(signedDocument, certificateVerifier);
