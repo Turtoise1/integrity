@@ -36,7 +36,7 @@ public class ConfigService {
         Pkcs12SignatureToken signatureToken = null;
         try {
             signatureToken = new Pkcs12SignatureToken(
-                    "src/test/resources/signer.p12",
+                    "src/test/resources/signer-1.p12",
                     new PasswordProtection("changeit".toCharArray()));
         } catch (Exception e) {
             throw new RuntimeException("Failed to load signing token", e);
@@ -62,7 +62,7 @@ public class ConfigService {
 
     private void addSignerCertificates(TrustedCertificateSource source) {
         String caDirectory = "src/test/resources/demoCA/";
-        CertificateToken signerCert = DSSUtils.loadCertificate(new File(caDirectory + "certs/signer.crt"));
+        CertificateToken signerCert = DSSUtils.loadCertificate(new File(caDirectory + "certs/signer-1.crt"));
         source.addCertificate(signerCert);
         CertificateToken caCert = DSSUtils.loadCertificate(new File(caDirectory + "cacert.pem"));
         source.addCertificate(caCert);

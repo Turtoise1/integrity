@@ -209,6 +209,8 @@ unstructuredName		= An optional company name
 
 [ usr_cert ]
 
+crlDistributionPoints=URI:http://localhost:8000/rootca.crl
+
 # These extensions are added when 'ca' signs a request.
 
 # This goes against PKIX guidelines but some CAs do it and some software
@@ -217,7 +219,7 @@ unstructuredName		= An optional company name
 basicConstraints=CA:FALSE
 
 # This is typical in keyUsage for a client certificate.
-# keyUsage = nonRepudiation, digitalSignature, keyEncipherment
+keyUsage = nonRepudiation, digitalSignature, keyEncipherment
 
 # PKIX recommendations harmless if included in all certificates.
 subjectKeyIdentifier=hash
