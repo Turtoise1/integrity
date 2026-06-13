@@ -66,147 +66,132 @@ public class BlockchainService {
     }
 
     public String storeHash(String filePath) throws IOException {
-        try {
-            // Get file content and compute SHA-256 hash
-            byte[] fileContent = documentService.getFileContent(filePath);
-            byte[] hashBytes = sha256Digest.digest(fileContent);
+        // Get file content and compute SHA-256 hash
+        byte[] fileContent = documentService.getFileContent(filePath);
+        byte[] hashBytes = sha256Digest.digest(fileContent);
 
-            // Prepare the function call
-            Function function = new Function(
-                    "storeHash",
-                    Arrays.asList(
-                            new Utf8String(filePath),
-                            new Bytes32(hashBytes)),
-                    Collections.emptyList());
+        // Prepare the function call
+        Function function = new Function(
+                "storeHash",
+                Arrays.asList(
+                        new Utf8String(filePath),
+                        new Bytes32(hashBytes)),
+                Collections.emptyList());
 
-            String encodedFunction = org.web3j.abi.FunctionEncoder.encode(function);
+        String encodedFunction = org.web3j.abi.FunctionEncoder.encode(function);
 
-            // Get nonce
-            BigInteger nonce = web3j.ethGetTransactionCount(credentials.getAddress(), DefaultBlockParameterName.LATEST)
-                    .send().getTransactionCount();
+        // Get nonce
+        BigInteger nonce = web3j.ethGetTransactionCount(credentials.getAddress(), DefaultBlockParameterName.LATEST)
+                .send().getTransactionCount();
 
-            // Get gas price
-            BigInteger gasPrice = web3j.ethGasPrice().send().getGasPrice();
+        // Get gas price
+        BigInteger gasPrice = web3j.ethGasPrice().send().getGasPrice();
 
-            // Create raw transaction
-            RawTransaction rawTransaction = RawTransaction.createTransaction(
-                    nonce,
-                    gasPrice,
-                    BigInteger.valueOf(DEFAULT_GAS_LIMIT),
-                    contractAddress,
-                    BigInteger.ZERO,
-                    encodedFunction);
+        // Create raw transaction
+        RawTransaction rawTransaction = RawTransaction.createTransaction(
+                nonce,
+                gasPrice,
+                BigInteger.valueOf(DEFAULT_GAS_LIMIT),
+                contractAddress,
+                BigInteger.ZERO,
+                encodedFunction);
 
-            // Sign transaction
-            byte[] signedMessage = TransactionEncoder.signMessage(rawTransaction, credentials);
-            String hexValue = Numeric.toHexString(signedMessage);
+        // Sign transaction
+        byte[] signedMessage = TransactionEncoder.signMessage(rawTransaction, credentials);
+        String hexValue = Numeric.toHexString(signedMessage);
 
-            // Send transaction
-            EthSendTransaction ethSendTransaction = web3j.ethSendRawTransaction(hexValue).send();
+        // Send transaction
+        EthSendTransaction ethSendTransaction = web3j.ethSendRawTransaction(hexValue).send();
 
-            if (ethSendTransaction.hasError()) {
-                throw new RuntimeException("Transaction error: " + ethSendTransaction.getError().getMessage());
-            }
-
-            String txHash = ethSendTransaction.getTransactionHash();
-            String hexHash = Numeric.toHexString(hashBytes);
-
-            log.info("Stored hash for file {} in blockchain, tx: {}", filePath, txHash);
-
-            return txHash + ":" + hexHash;
-
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to store hash for file: " + filePath, e);
+        if (ethSendTransaction.hasError()) {
+            throw new RuntimeException("Transaction error: " + ethSendTransaction.getError().getMessage());
         }
+
+        String txHash = ethSendTransaction.getTransactionHash();
+        String hexHash = Numeric.toHexString(hashBytes);
+
+        log.info("Stored hash for file {} in blockchain, tx: {}", filePath, txHash);
+
+        return txHash + ":" + hexHash;
     }
 
     public AnchorVerificationResult verifyHash(String filePath) throws IOException {
-        try {
-            // Get file content and compute current SHA-256 hash
-            byte[] fileContent = documentService.getFileContent(filePath);
-            byte[] currentHashBytes = sha256Digest.digest(fileContent);
-            String currentHexHash = Numeric.toHexString(currentHashBytes);
+        // Get file content and compute current SHA-256 hash
+        byte[] fileContent = documentService.getFileContent(filePath);
+        byte[] currentHashBytes = sha256Digest.digest(fileContent);
+        String currentHexHash = Numeric.toHexString(currentHashBytes);
 
-            // Retrieve stored hash from blockchain
-            Function function = new Function(
-                    "getHash",
-                    Arrays.asList(new Utf8String(filePath)),
-                    Arrays.asList(
-                            new TypeReference<Bytes32>() {
-                            },
-                            new TypeReference<Uint256>() {
-                            }));
+        // Retrieve stored hash from blockchain
+        Function function = new Function(
+                "getHash",
+                Arrays.asList(new Utf8String(filePath)),
+                Arrays.asList(
+                        new TypeReference<Bytes32>() {
+                        },
+                        new TypeReference<Uint256>() {
+                        }));
 
-            String encodedFunction = FunctionEncoder.encode(function);
+        String encodedFunction = FunctionEncoder.encode(function);
 
-            Transaction transaction = Transaction.createEthCallTransaction(credentials.getAddress(), contractAddress,
-                    encodedFunction);
+        Transaction transaction = Transaction.createEthCallTransaction(credentials.getAddress(), contractAddress,
+                encodedFunction);
 
-            EthCall ethCall = web3j.ethCall(transaction, DefaultBlockParameterName.LATEST).send();
+        EthCall ethCall = web3j.ethCall(transaction, DefaultBlockParameterName.LATEST).send();
 
-            if (ethCall.hasError()) {
-                throw new RuntimeException("Call error: " + ethCall.getError().getMessage());
-            }
-
-            List<Type> results = org.web3j.abi.FunctionReturnDecoder.decode(ethCall.getValue(),
-                    function.getOutputParameters());
-
-            if (results.isEmpty() || results.get(0).getValue() == null) {
-                // No hash stored for this file
-                return new AnchorVerificationResult(false, null, currentHexHash, null);
-            }
-
-            byte[] storedHashBytes = (byte[]) results.get(0).getValue();
-            String storedHexHash = Numeric.toHexString(storedHashBytes);
-            BigInteger timestamp = (BigInteger) results.get(1).getValue();
-
-            boolean match = storedHexHash.equalsIgnoreCase(currentHexHash);
-
-            return new AnchorVerificationResult(match, storedHexHash, currentHexHash, timestamp.longValue());
-
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to verify hash for file: " + filePath, e);
+        if (ethCall.hasError()) {
+            throw new RuntimeException("Call error: " + ethCall.getError().getMessage());
         }
+
+        List<Type> results = org.web3j.abi.FunctionReturnDecoder.decode(ethCall.getValue(),
+                function.getOutputParameters());
+
+        if (results.isEmpty() || results.get(0).getValue() == null) {
+            // No hash stored for this file
+            return new AnchorVerificationResult(false, null, currentHexHash, null);
+        }
+
+        byte[] storedHashBytes = (byte[]) results.get(0).getValue();
+        String storedHexHash = Numeric.toHexString(storedHashBytes);
+        BigInteger timestamp = (BigInteger) results.get(1).getValue();
+
+        boolean match = storedHexHash.equalsIgnoreCase(currentHexHash);
+
+        return new AnchorVerificationResult(match, storedHexHash, currentHexHash, timestamp.longValue());
     }
 
-    public List<String> listAnchoredFiles() {
-        try {
-            Function function = new Function(
-                    "listFiles",
-                    Collections.emptyList(),
-                    Arrays.asList(new TypeReference<DynamicArray<Utf8String>>() {
-                    }));
+    public List<String> listAnchoredFiles() throws IOException {
+        Function function = new Function(
+                "listFiles",
+                Collections.emptyList(),
+                Arrays.asList(new TypeReference<DynamicArray<Utf8String>>() {
+                }));
 
-            String encodedFunction = FunctionEncoder.encode(function);
+        String encodedFunction = FunctionEncoder.encode(function);
 
-            Transaction transaction = Transaction.createEthCallTransaction(credentials.getAddress(), contractAddress,
-                    encodedFunction);
+        Transaction transaction = Transaction.createEthCallTransaction(credentials.getAddress(), contractAddress,
+                encodedFunction);
 
-            EthCall ethCall = web3j.ethCall(transaction, DefaultBlockParameterName.LATEST).send();
+        EthCall ethCall = web3j.ethCall(transaction, DefaultBlockParameterName.LATEST).send();
 
-            if (ethCall.hasError()) {
-                throw new RuntimeException("Call error: " + ethCall.getError().getMessage());
-            }
-
-            List<Type> results = FunctionReturnDecoder.decode(ethCall.getValue(),
-                    function.getOutputParameters());
-
-            if (results.isEmpty() || results.get(0).getValue() == null) {
-                return Collections.emptyList();
-            }
-
-            @SuppressWarnings("unchecked")
-            List<Utf8String> stringResults = (List<Utf8String>) results.get(0).getValue();
-            List<String> filePaths = new ArrayList<>();
-            for (Utf8String utf8Str : stringResults) {
-                filePaths.add(utf8Str.getValue());
-            }
-
-            return filePaths;
-
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to list anchored files", e);
+        if (ethCall.hasError()) {
+            throw new RuntimeException("Call error: " + ethCall.getError().getMessage());
         }
+
+        List<Type> results = FunctionReturnDecoder.decode(ethCall.getValue(),
+                function.getOutputParameters());
+
+        if (results.isEmpty() || results.get(0).getValue() == null) {
+            return Collections.emptyList();
+        }
+
+        @SuppressWarnings("unchecked")
+        List<Utf8String> stringResults = (List<Utf8String>) results.get(0).getValue();
+        List<String> filePaths = new ArrayList<>();
+        for (Utf8String utf8Str : stringResults) {
+            filePaths.add(utf8Str.getValue());
+        }
+
+        return filePaths;
     }
 
     public void setContractAddress(String address) {
