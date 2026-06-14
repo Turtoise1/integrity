@@ -78,7 +78,7 @@ public class BlockchainService {
                         new Bytes32(hashBytes)),
                 Collections.emptyList());
 
-        String encodedFunction = org.web3j.abi.FunctionEncoder.encode(function);
+        String encodedFunction = FunctionEncoder.encode(function);
 
         // Get nonce
         BigInteger nonce = web3j.ethGetTransactionCount(credentials.getAddress(), DefaultBlockParameterName.LATEST)
@@ -142,8 +142,7 @@ public class BlockchainService {
             throw new RuntimeException("Call error: " + ethCall.getError().getMessage());
         }
 
-        List<Type> results = org.web3j.abi.FunctionReturnDecoder.decode(ethCall.getValue(),
-                function.getOutputParameters());
+        List<Type> results = FunctionReturnDecoder.decode(ethCall.getValue(), function.getOutputParameters());
 
         if (results.isEmpty() || results.get(0).getValue() == null) {
             // No hash stored for this file
