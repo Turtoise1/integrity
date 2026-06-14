@@ -25,6 +25,7 @@ import org.apache.ratis.grpc.GrpcConfigKeys;
 import org.apache.ratis.netty.NettyConfigKeys;
 import org.apache.ratis.protocol.RaftGroup;
 import org.apache.ratis.protocol.RaftGroupId;
+import org.apache.ratis.protocol.RaftPeer;
 import org.apache.ratis.protocol.RaftPeerId;
 import org.apache.ratis.server.RaftServer;
 import org.apache.ratis.server.RaftServerConfigKeys;
@@ -37,6 +38,7 @@ import org.apache.ratis.util.TimeDuration;
 
 import com.example.integrity.filestore.FileStoreCommon;
 import com.example.integrity.filestore.FileStoreStateMachine;
+import com.example.integrity.utils.FileStoreUtils;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -47,10 +49,16 @@ import java.util.concurrent.TimeUnit;
 /**
  * Class to start a ratis filestore example server.
  */
-public class Server extends CommandBase {
+public class Server {
+
+    /** Raft group id */
+    private String groupId;
 
     /** Raft id of this server */
     private String id;
+
+    /** Raft peers */
+    private String peers;
 
     /** Storage dir, eg. --storage dir1 --storage dir2 */
     private List<File> storageDir = new ArrayList<>();
@@ -80,11 +88,18 @@ public class Server extends CommandBase {
      */
     public Server(String groupId, String peers, String id, List<File> storageDir, Integer writeThreadNum,
             Integer readThreadNum, Integer commitThreadNum, Integer deleteThreadNum) {
-        super(groupId, peers);
+        if (groupId == null) {
+            throw new IllegalArgumentException("groupId must be specified");
+        }
+        this.groupId = groupId;
         if (id == null) {
             throw new IllegalArgumentException("id must be specified");
         }
         this.id = id;
+        if (peers == null) {
+            throw new IllegalArgumentException("peers must be specified");
+        }
+        this.peers = peers;
         if (storageDir == null || storageDir.isEmpty()) {
             throw new IllegalArgumentException("storageDir must be specified");
         }
@@ -103,7 +118,6 @@ public class Server extends CommandBase {
         }
     }
 
-    @Override
     public void run() throws Exception {
         RaftPeerId peerId = RaftPeerId.valueOf(id);
         RaftProperties properties = new RaftProperties();
@@ -112,15 +126,16 @@ public class Server extends CommandBase {
         RaftServerConfigKeys.Rpc.setTimeoutMin(properties, TimeDuration.valueOf(2, TimeUnit.SECONDS));
         RaftServerConfigKeys.Rpc.setTimeoutMax(properties, TimeDuration.valueOf(3, TimeUnit.SECONDS));
 
-        final int port = NetUtils.createSocketAddr(getPeer(peerId).getAddress()).getPort();
+        RaftPeer peer = FileStoreUtils.getPeer(peers, peerId);
+        final int port = NetUtils.createSocketAddr(peer.getAddress()).getPort();
         GrpcConfigKeys.Server.setPort(properties, port);
 
-        Optional.ofNullable(getPeer(peerId).getClientAddress()).ifPresent(
+        Optional.ofNullable(peer.getClientAddress()).ifPresent(
                 address -> GrpcConfigKeys.Client.setPort(properties, NetUtils.createSocketAddr(address).getPort()));
-        Optional.ofNullable(getPeer(peerId).getAdminAddress()).ifPresent(
+        Optional.ofNullable(peer.getAdminAddress()).ifPresent(
                 address -> GrpcConfigKeys.Admin.setPort(properties, NetUtils.createSocketAddr(address).getPort()));
 
-        String dataStreamAddress = getPeer(peerId).getDataStreamAddress();
+        String dataStreamAddress = peer.getDataStreamAddress();
         if (dataStreamAddress != null) {
             final int dataStreamport = NetUtils.createSocketAddr(dataStreamAddress).getPort();
             NettyConfigKeys.DataStream.setPort(properties, dataStreamport);
@@ -138,8 +153,8 @@ public class Server extends CommandBase {
         ConfUtils.setInt(properties::setInt, FileStoreCommon.STATEMACHINE_DELETE_THREAD_NUM, deleteThreadNum);
         StateMachine stateMachine = new FileStoreStateMachine(properties);
 
-        final RaftGroup raftGroup = RaftGroup.valueOf(RaftGroupId.valueOf(ByteString.copyFromUtf8(getRaftGroupId())),
-                getPeers());
+        final RaftGroup raftGroup = RaftGroup.valueOf(RaftGroupId.valueOf(ByteString.copyFromUtf8(groupId)),
+                FileStoreUtils.parsePeers(peers));
         RaftServer raftServer = RaftServer.newBuilder()
                 .setServerId(RaftPeerId.valueOf(id))
                 .setStateMachine(stateMachine).setProperties(properties)

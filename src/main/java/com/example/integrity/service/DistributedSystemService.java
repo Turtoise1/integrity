@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 
 import com.example.integrity.config.RaftConfiguration;
 import com.example.integrity.filestore.FileStoreClient;
+import com.example.integrity.utils.FileStoreUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -77,7 +78,7 @@ public class DistributedSystemService {
                 TimeDuration.valueOf(50000, TimeUnit.MILLISECONDS));
         RaftClientConfigKeys.Async.setOutstandingRequestsMax(raftProperties, 1000);
 
-        RaftPeer[] peers = parsePeers(raftConfig.getPeers());
+        RaftPeer[] peers = FileStoreUtils.parsePeers(raftConfig.getPeers());
         RaftGroup raftGroup = RaftGroup.valueOf(
                 RaftGroupId.valueOf(ByteString.copyFromUtf8(raftConfig.getRaftGroupId())),
                 peers);
@@ -91,27 +92,6 @@ public class DistributedSystemService {
         RaftClient client = builder.build();
 
         return new FileStoreClient(client);
-    }
-
-    private RaftPeer[] parsePeers(String peers) {
-        String[] peerAddresses = peers.split(",");
-        RaftPeer[] result = new RaftPeer[peerAddresses.length];
-        for (int i = 0; i < peerAddresses.length; i++) {
-            String[] addressParts = peerAddresses[i].split(":");
-            RaftPeer.Builder builder = RaftPeer.newBuilder();
-            builder.setId(addressParts[0]).setAddress(addressParts[1] + ":" + addressParts[2]);
-            if (addressParts.length >= 4) {
-                builder.setDataStreamAddress(addressParts[1] + ":" + addressParts[3]);
-                if (addressParts.length >= 5) {
-                    builder.setClientAddress(addressParts[1] + ":" + addressParts[4]);
-                    if (addressParts.length >= 6) {
-                        builder.setAdminAddress(addressParts[1] + ":" + addressParts[5]);
-                    }
-                }
-            }
-            result[i] = builder.build();
-        }
-        return result;
     }
 
     public void distribute(String path) throws IOException {

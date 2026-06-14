@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.example.integrity.filestore.commands;
+package com.example.integrity.utils;
 
 import org.apache.ratis.protocol.RaftPeer;
 import org.apache.ratis.protocol.RaftPeerId;
@@ -26,32 +26,19 @@ import java.util.Objects;
 import java.util.stream.Stream;
 
 /**
- * Base subcommand class which includes the basic raft properties.
+ * Utility class for file store operations.
  */
-public abstract class CommandBase {
+public class FileStoreUtils {
 
-    /** Raft group identifier */
-    private String raftGroupId = "demoRaftGroup123";
-
-    /** Raft peers (format: name:host:port:dataStreamPort:clientPort:adminPort,...) */
-    private String peers;
+    /** Default raft group identifier */
+    public static final String DEFAULT_RAFT_GROUP_ID = "demoRaftGroup123";
 
     /**
-     * Constructs a CommandBase with the given raft group id and peers.
+     * Parses a comma-separated string of peer addresses into RaftPeer objects.
      *
-     * @param peers   the raft peers (format: name:host:port:dataStreamPort:clientPort:adminPort,...)
-     * @param groupId the optional raft group id
+     * @param peers the peer addresses (format: name:host:port:dataStreamPort:clientPort:adminPort,...)
+     * @return array of RaftPeer objects
      */
-    public CommandBase(String groupId, String peers) {
-        if (peers == null) {
-            throw new RuntimeException("peers must be specified");
-        }
-        this.peers = peers;
-        if (groupId != null) {
-            this.raftGroupId = groupId;
-        }
-    }
-
     public static RaftPeer[] parsePeers(String peers) {
         return Stream.of(peers.split(",")).map(address -> {
             String[] addressParts = address.split(":");
@@ -75,21 +62,49 @@ public abstract class CommandBase {
         }).toArray(RaftPeer[]::new);
     }
 
-    public RaftPeer[] getPeers() {
-        return parsePeers(peers);
+    /**
+     * Gets the primary peer from an array of peers.
+     *
+     * @param peers array of RaftPeer objects
+     * @return the first peer (primary)
+     */
+    public static RaftPeer getPrimary(RaftPeer[] peers) {
+        if (peers == null || peers.length == 0) {
+            throw new IllegalArgumentException("peers must be specified and non-empty");
+        }
+        return peers[0];
     }
 
-    public RaftPeer getPrimary() {
-        return parsePeers(peers)[0];
+    /**
+     * Gets the peer with the given id from an array of peers.
+     *
+     * @param peers      string of peers
+     * @param raftPeerId the peer id to find
+     * @return the peer with the given id
+     * @throws IllegalArgumentException if the peer id is not found
+     */
+    public static RaftPeer getPeer(String peers, RaftPeerId raftPeerId) {
+        Objects.requireNonNull(raftPeerId, "raftPeerId == null");
+        if (peers == null) {
+            throw new IllegalArgumentException("peers must be specified");
+        }
+        for (RaftPeer p : parsePeers(peers)) {
+            if (raftPeerId.equals(p.getId())) {
+                return p;
+            }
+        }
+        throw new IllegalArgumentException(
+                "Raft peer id " + raftPeerId + " is not part of the raft group definitions");
     }
 
-    public abstract void run() throws Exception;
-
-    public String getRaftGroupId() {
-        return raftGroupId;
-    }
-
-    public RoutingTable getRoutingTable(Collection<RaftPeer> raftPeers, RaftPeer primary) {
+    /**
+     * Creates a routing table from a collection of raft peers and a primary peer.
+     *
+     * @param raftPeers the collection of raft peers
+     * @param primary   the primary peer
+     * @return the routing table
+     */
+    public static RoutingTable getRoutingTable(Collection<RaftPeer> raftPeers, RaftPeer primary) {
         RoutingTable.Builder builder = RoutingTable.newBuilder();
         RaftPeer previous = primary;
         for (RaftPeer peer : raftPeers) {
@@ -101,20 +116,5 @@ public abstract class CommandBase {
         }
 
         return builder.build();
-    }
-
-    /**
-     * @return the peer with the given id if it is in this group; otherwise, return null.
-     */
-    public RaftPeer getPeer(RaftPeerId raftPeerId) {
-        Objects.requireNonNull(raftPeerId, "raftPeerId == null");
-        for (RaftPeer p : getPeers()) {
-            if (raftPeerId.equals(p.getId())) {
-                return p;
-            }
-        }
-        throw new IllegalArgumentException(
-                "Raft peer id " + raftPeerId + " is not part of the raft group definitions " +
-                        this.peers);
     }
 }
